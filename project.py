@@ -1,13 +1,14 @@
 import csv
 import random
 import pygame
-import cowsay
-from colorama import Fore, Style
-import os
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+import re
+
 pygame.mixer.init()
-correct_answer = pygame.mixer.Sound("correct-83487.mp3")
-wrong_answer = pygame.mixer.Sound("y2mate.com - Wrong Answer Sound effect.mp3")
-game_over = pygame.mixer.Sound("y2mate.com - Game Over Sound Effects High Quality.mp3")
+correctAnswer = pygame.mixer.Sound("y2mate.com - Correct Answer sound effect.wav")
+wrong_answer = pygame.mixer.Sound("y2mate.com - Wrong Answer Sound effect.wav")
+game_over = pygame.mixer.Sound("y2mate.com - Game Over Sound Effects High Quality.wav")
 
 def play_sounds():
     pygame.mixer.init()
@@ -15,263 +16,265 @@ def play_sounds():
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(loops=-1)
 
-def print_title():
-    title = f"{Fore.BLUE}-----🅆🄴🄻🄲🄾🄼🄴 🅃🄾 🅄🄻🅃🄸🄼🄰🅃🄴 🄲🄷🄰🄻🄻🄴🄽🄶🄴 🅀🅄🄸🅉-----{Style.RESET_ALL}"
-    width = 89
-    centered_title = title.center(width)
-    print("+------------------------------------------------------------------------------------------------------+")
-    print(f"| {centered_title} |")
-    print(f"| {Fore.LIGHTGREEN_EX} Test Your Knowledge and Unleash Your Inner Genius!                                                  {Style.RESET_ALL}|")
-    print("+------------------------------------------------------------------------------------------------------+")
+class QuizGame:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Ultimate Challenge Quiz")
+        window_width = 800
+        window_height = 400
+        self.master.geometry(f"{window_width}x{window_height}")
+        self.master.configure(bg="#f0f0f0")
 
-def display_category_options():
-    print(f"Choose a {Fore.GREEN}CATEGORY{Style.RESET_ALL}:")
-    categories = [
-        f"{Fore.CYAN}1. Trivia Test{Style.RESET_ALL}",
-        f"{Fore.CYAN}2. Science Test{Style.RESET_ALL}",
-        f"{Fore.CYAN}3. Math Test{Style.RESET_ALL}",
-        f"{Fore.CYAN}4. Literary Test{Style.RESET_ALL}",
-        f"{Fore.CYAN}5. History Test{Style.RESET_ALL}",
-        f"{Fore.CYAN}6. Display Leaderboards{Style.RESET_ALL}",
-        f"{Fore.LIGHTRED_EX}7. Exit{Style.RESET_ALL}"
+        self.center_window(window_width, window_height)
+        self.title_label = tk.Label(master, text="Welcome to Ultimate Challenge Quiz", font=("Arial", 20), bg="#f0f0f0")
+        self.title_label.pack(pady=50)
 
-    ]
-    for category in categories:
-        print(category)
-    print("=" * 50)
+        self.start_button = tk.Button(master, text="Start Quiz",  width=15, height=1,command=self.start_quiz, bg="#4CAF50", fg="white")
+        self.start_button.pack(pady=10)
 
-def display_difficulty_options():
-    print("Choose a difficulty level:")
-    difficulties = [
-        f"{Fore.GREEN}1. Easy{Style.RESET_ALL}",
-        f"{Fore.BLUE}2. Normal{Style.RESET_ALL}",
-        f"{Fore.RED}3. Expert{Style.RESET_ALL}",
-        f"{Fore.BLUE}4. Back{Style.RESET_ALL}"
+        self.leaderboard_button = tk.Button(master, text="View Leaderboards", command=self.display_leaderboards, bg="#2196F3", fg="white")
+        self.leaderboard_button.pack(pady=10)
 
-    ]
-    for difficulty in difficulties:
-        print(difficulty)
-    print("=" * 50)
+        self.how_to = tk.Button(master, text="How to play?",  width=15, height=1, command=self.show_detail, bg="#2196F3", fg="white")
+        self.how_to.pack(pady=10)
 
-class MgaTanong:
-    def __init__(self, questions,):
-        self.questions = questions
+        self.exit_button = tk.Button(master, text="Exit", width=15, height=1,command=master.quit, bg="#f44336", fg="white")
+        self.exit_button.pack(pady=10)
+
+        self.questions = []
         self.lives = 3
         self.score = 0
-        self.time_out = False
-        self.time_taken = []
-        self.consecutive_correct = 0  # Counter for consecutive correct answers
-        random.shuffle(questions)
+        self.consecutive_correct = 0
+
+    def center_window(self, width, height):
+        # Get the screen dimensions
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+
+        # Calculate x and y coordinates for the Tkinter window
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+
+        # Set the position of the window
+        self.master.geometry(f"{width}x{height}+{x}+{y}")
 
     def start_quiz(self):
-        print(f"{Fore.RED}CAUTION:  {Style.RESET_ALL}{Fore.LIGHTGREEN_EX}Using a hint will decrease your lives by 1.{Style.RESET_ALL}")
+        self.player_name = simpledialog.askstring("Input", "Enter your name:")
+        if not self.player_name or not re.match("^[A-Za-z0-9 ]+$", self.player_name):
+            messagebox.showwarning("Warning", "You need to enter a valid name (no special characters)!")
+            return
+        if not self.player_name:
+            messagebox.showwarning("Warning", "You need to enter your name!")
+            return
 
-        for index, question in enumerate(self.questions, start=1):
-            if self.lives > 0:  # Check if the player has lives left
-                print(f"{Fore.GREEN}You have {self.lives} lives remaining.{Style.RESET_ALL}")  # Show lives before asking the question
-                self.ask_question(index, question)
-                if self.lives == 0:  # Check if lives have reached zero
-                    game_over.play()
-                    print(f"{Fore.RED}Game Over! You have run out of lives.{Style.RESET_ALL}")
-                    break  # Exit the loop if lives are zero
-                    game_over.play()
-        print(f"Your final score: {self.score}/{len(self.questions)}")
-        return self.score
+        self.category_selection()
 
-    def ask_question(self, index, question):
-        cowsay.cow(f"{Fore.RED}Question {index}{Style.RESET_ALL}: {Fore.BLUE}{question[0]}{Style.RESET_ALL}")
+    def category_selection(self):
+        categories = ["Trivia", "Science", "Math", "Literary", "History"]
+        self.clear_screen()
 
-        hint_used = False  # Initialize hint_used before the loop
-
-        while True:
-            user_input = input("Enter your answer (or type 'hint' for a hint): ")
-
-            if user_input.strip().lower() == 'hint' and not hint_used:
-                hint_used = True
-                self.lives -= 1  # Decrease lives by 1 when hint is used
-                # Provide a hint (you can customize this)
-                print(f"{Fore.YELLOW}Hint: {question[1][0]}...{Style.RESET_ALL}")
-            elif user_input.strip().lower() == question[1].lower():
-                correct_answer.play()
-                cowsay.tux(f"{Fore.BLUE}Correct!{Style.RESET_ALL}")
-                self.score += 1
-                self.consecutive_correct += 1  # Increment consecutive correct answers
-                if self.consecutive_correct == 3:
-                    self.lives += 1  # Grant an extra life
-                    print(f"{Fore.LIGHTGREEN_EX}Congratulations! You've earned an extra life!{Style.RESET_ALL}")
-                    self.consecutive_correct = 0  # Reset the counter after earning an extra life
-                break
-            else:
-                wrong_answer.play()
-                self.lives -= 1  # Decrease lives by 1 for wrong answer
-                cowsay.tux(f"{Fore.RED}Wrong!{Style.RESET_ALL} The answer is: {Fore.BLUE}{question[1]}{Style.RESET_ALL}")
-                self.consecutive_correct = 0  # Reset the counter on incorrect answer
-                break
-
-        hint_status = "Used" if hint_used else "Not Used"
-
-        print(f"Your current score: {self.score}/{len(self.questions)}| Lives left: {self.lives} | Hint status: {hint_status}\n")
-def display_leaderboards():
-    print(f"{Fore.YELLOW}--- Leaderboards ---{Style.RESET_ALL}")
-    try:
-        with open('quiz_results.csv', mode='r') as file:
-            reader = csv.reader(file)
-            print(f"{'Name':<20} {'Difficulty':<15} {'Category':<20}{'Score':<15}")
-            print("=" * 62)
-            for row in reader:
-                print(f"{row[0]:<20}  {row[1]:<15} {row[2]:<20} {row[3]:<5}")
-    except FileNotFoundError:
-        print(f"{Fore.RED}No leaderboard data found.{Style.RESET_ALL}")
+        tk.Label(self.master, text="Select a Category", font=("Arial", 16), bg="#f0f0f0").pack(pady=10)
+        for category in categories:
+            tk.Button(self.master, text=category, width=15, height=2,command=lambda c=category: self.select_category(c),
+                      bg="#2196F3", fg="white").pack(pady=5)
 
 
+    def select_category(self, category):
+        self.category = category
+        self.difficulty_selection()
 
-def save_results(pangalan, difficulty, file_name, score):
-    with open('quiz_results.csv', mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([pangalan, difficulty, file_name, score])
+    def difficulty_selection(self):
+        difficulties = ["Easy", "Normal", "Expert"]
+        self.clear_screen()
+        tk.Label(self.master, text="Select Difficulty", font=("Arial", 16), bg="#f0f0f0").pack(pady=10)
+        for difficulty in difficulties:
+            tk.Button(self.master, text=difficulty,width=15, height=2, command=lambda d=difficulty: self.select_difficulty(d),
+                      bg="#4CAF50", fg="white").pack(pady=5)
 
 
-def main():
-    print_title()
-    play_sounds()
-    while True:
-        pangalan = input("Enter your name first before we proceed: ").strip()
-        if pangalan:  # Check if the input is not empty
-            break
+    def select_difficulty(self, difficulty):
+        self.difficulty = difficulty
+        self.load_questions()
+        self.ask_questions()
+
+    def clear_screen(self):
+        for widget in self.master.winfo_children():
+            widget.destroy()
+
+    def load_questions(self):
+        file_name = f"{self.category}{self.difficulty}.csv"  # Assuming the CSV files are named after categories
+        self.questions = []
+        try:
+            with open(file_name, 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['difficulty'].lower() == self.difficulty.lower():
+                        self.questions.append((row['question'], row['answer']))
+            random.shuffle(self.questions)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Questions file not found!")
+            return
+
+    def ask_questions(self):
+        self.clear_screen()
+
+        self.status_frame = tk.Frame(self.master, bg="#f0f0f0")
+        self.status_frame.pack(pady=10)
+
+        self.lives_label = tk.Label(self.status_frame, text=f"Lives: {self.lives}", font=("Arial", 12), bg="#f0f0f0")
+        self.lives_label.pack(side=tk.LEFT, padx=10)
+
+        self.score_label = tk.Label(self.status_frame, text=f"Score: {self.score}", font=("Arial", 12), bg="#f0f0f0")
+        self.score_label.pack(side=tk.LEFT, padx=10)
+
+        self.question_label = tk.Label(self.master, text="", font=("Arial", 12), bg="#f0f0f0")
+        self.question_label.pack(pady=20)
+
+        self.answer_entry = tk.Entry(self.master, font=("Arial", 12))
+        self.answer_entry.pack(pady=10)
+
+        self.submit_button = tk.Button(self.master, text="Submit",width=15, height=1, command=self.submit_answer, bg="#4CAF50", fg="white")
+        self.submit_button.pack(pady=10)
+
+        self.hint_button = tk.Button(self.master, text="Hint", width=15, height=1,command=self.give_hint, bg="#FFC107", fg="black")
+        self.hint_button.pack(pady=5)
+
+        self.exit_button = tk.Button(self.master, text="Back to Main Menu", command=self.back_to_main_menu, bg="#f44336", fg="white")
+        self.exit_button.pack(pady=5)
+
+        self.current_question_index = 0
+        self.display_question()
+
+    def display_question(self):
+        if self.current_question_index < len(self.questions) and self.lives > 0:
+            question = self.questions[self.current_question_index]
+            self.question_label.config(text=f"Q{self.current_question_index + 1}: {question[0]}")
+
+            # Update lives and score labels
+            self.lives_label.config(text=f"Lives: {self.lives}")
+            self.score_label.config(text=f"Score: {self.score}")
+
+            self.answer_entry.delete(0, tk.END)  # Clear the entry field
         else:
-            print("You need to enter your name!")
+            self.end_quiz()
 
-    print(f"Welcome {pangalan} to UCQ!!")
-    ENTER = f"{Fore.BLUE}ENTER{Style.RESET_ALL}"
-    input(f"Press {ENTER} to reveal the category...")
-
-    display_category_options()
-
-    choice = input("Please select an option (1-7): ")
-
-    if choice == '6':
-        display_leaderboards()
-        return
-
-    if choice == '7':
-        print("Exiting the game.!")
-        pygame.quit()
-        return
-
-    display_difficulty_options()
-
-    difficulty_choice = input("Please select a difficulty level (1-3): ")
-
-    if choice == '1':
-        if difficulty_choice == '1':
-            difficulty = "easy"
-            file_name = "Trivia.csv"
-        elif difficulty_choice == '2':
-            difficulty = "normal"
-            file_name = "TriviaNormal.csv"
-        elif difficulty_choice == '3':
-            difficulty = "expert"
-            file_name = "TriviaExpert.csv"
-        elif difficulty_choice == '4':
-            display_category_options()
-            return
-
+    def check_answer(self, user_input, correct_answer):
+        if user_input.strip().lower() == 'hint':
+            self.lives -= 1
+            messagebox.showinfo("Hint", f"Hint: {correct_answer[0]}...")
+        elif user_input.strip().lower() == correct_answer.lower():
+            messagebox.showinfo("Correct!", "Correct!")
+            self.score += 1
+            self.consecutive_correct += 1
+            if self.consecutive_correct == 3:
+                self.lives += 1
+                messagebox.showinfo("Extra Life", "You've earned an extra life!")
+                self.consecutive_correct = 0
         else:
-            print("Invalid choice. Please select a valid difficulty level.")
-            return
+            messagebox.showinfo("Wrong!", f"Wrong! The answer is: {correct_answer}")
+            self.lives -= 1
+            self.consecutive_correct = 0
 
-    elif choice == '2':
-        if difficulty_choice == '1':
-            difficulty = "easy"
-            file_name = "Science.csv"
-        elif difficulty_choice == '2':
-            difficulty = "normal"
-            file_name = "ScienceN.csv"
-        elif difficulty_choice == '3':
-            difficulty = "expert"
-            file_name = "ScienceE.csv"
-        elif difficulty_choice == '4':
-            display_category_options()
-            return
+    def submit_answer(self):
+        if self.lives > 0:
+            user_input = self.answer_entry.get()
+            correct_answer = self.questions[self.current_question_index][1]
+            self.check_answer(user_input, correct_answer)
+
+            self.current_question_index += 1
+            self.display_question()
+
+    def give_hint(self):
+        if self.lives > 0:
+            correct_answer = self.questions[self.current_question_index][1]
+            hint = correct_answer[0] + "..."  # Simple hint: first letter of the answer
+            self.lives -= 1  # Deduct a life for using a hint
+            messagebox.showinfo("Hint", f"Hint: {hint}\nLives left: {self.lives}")
         else:
-            print("Invalid choice. Please select a valid difficulty level.")
-            return
+            messagebox.showwarning("No Lives Left", "You have no lives left to use a hint.")
 
-    elif choice == '3':
-        if difficulty_choice == '1':
-            difficulty = "easy"
-            file_name = "MathC.csv"
-        elif difficulty_choice == '2':
-            difficulty = "normal"
-            file_name = "MathCNormal.csv"
-        elif difficulty_choice == '3':
-            difficulty = "expert"
-            file_name = "MathCExpert.csv"
-        elif difficulty_choice == '4':
-            display_category_options()
-            return
+    def back_to_main_menu(self):
+        # Reset game state variables
+        self.lives = 3
+        self.score = 0
+        self.consecutive_correct = 0
+        self.questions = []
+
+        # Clear the screen and show the main menu
+        self.clear_screen()
+        self.setup_main_menu()
+
+    def setup_main_menu(self):
+        self.title_label = tk.Label(self.master, text="Welcome to Ultimate Challenge Quiz", font=("Arial", 20),bg="#f0f0f0")
+        self.title_label.pack(pady=50)
+
+        self.start_button = tk.Button(self.master, text="Start Quiz", width=15, height=1, command=self.start_quiz, bg="#4CAF50", fg="white")
+        self.start_button.pack(pady=10)
+
+        self.leaderboard_button = tk.Button(self.master, text="View Leaderboards", width=15, height=1, command=self.display_leaderboards,bg="#2196F3", fg="white")
+        self.leaderboard_button.pack(pady=10)
+
+        self.exit_button = tk.Button(self.master, text="Exit", width=15, height=1, command=self.master.quit, bg="#f44336", fg="white")
+        self.exit_button.pack(pady=10)
+
+    def check_answer(self, user_input, correct_answer):
+        if user_input.strip().lower() == 'hint':
+            self.lives -= 1
+            messagebox.showinfo("Hint", f"Hint: {correct_answer[0]}...")
+        elif user_input.strip().lower() == correct_answer.lower():
+            pygame.mixer.Sound.play(correctAnswer)
+            messagebox.showinfo("Correct!", "Correct!")
+            self.score += 1
+            self.consecutive_correct += 1
+            if self.consecutive_correct == 3:
+                self.lives += 1
+                messagebox.showinfo("Extra Life", "You've earned an extra life!")
+                self.consecutive_correct = 0
         else:
-            print("Invalid choice. Please select a valid difficulty level.")
-            return
+            pygame.mixer.Sound.play(wrong_answer)
+            messagebox.showinfo("Wrong!", f"Wrong! The answer is: {correct_answer}")
+            self.lives -= 1
+            self.consecutive_correct = 0
 
-    elif choice == '4':
-        if difficulty_choice == '1':
-            difficulty = "easy"
-            file_name = "LiteraryTestEasy.csv"
-        elif difficulty_choice == '2':
-            difficulty = "normal"
-            file_name = "LiteraryTestN.csv"
-        elif difficulty_choice == '3':
-            difficulty = "expert"
-            file_name = "LiteraryTestE.csv"
-        elif difficulty_choice == '4':
-            display_category_options()
-            return
-        else:
-            print("Invalid choice. Please select a valid difficulty level.")
-            return
+    def end_quiz(self):
+        pygame.mixer.Sound.play(game_over)
+        messagebox.showinfo("Game Over", f"Your final score: {self.score - 1}/{len(self.questions)}")
+        self.save_results()
 
-    elif choice == '5':
-        if difficulty_choice == '1':
-            difficulty = "easy"
-            file_name = "History.csv"
-        elif difficulty_choice == '2':
-            difficulty = "normal"
-            file_name = "HistoryN.csv"
-        elif difficulty_choice == '3':
-            difficulty = "expert"
-            file_name = "HistoryE.csv"
-        elif difficulty_choice == '4':
-            display_category_options()
-        else:
-            print("Invalid choice. Please select a valid difficulty level.")
-            return
+    def save_results(self):
+        with open('quiz_results.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([self.player_name, self.difficulty, self.category, self.score-1])
 
-    else:
-        print("Invalid choice. Please select a valid option.")
-        return
+    def display_leaderboards(self):
+        try:
+            with open('quiz_results.csv', mode='r') as file:
+                reader = csv.reader(file)
+                leaderboard = f"{'Name':<15}\t{'Difficulty':<25}\t{'Category':<20}\t{'Score':<25}\t"
+                leaderboard += "=" * 40
+                for row in reader:
+                    leaderboard += f"{row[0]:<15}\t{row[1]:<25}\t{row[2]:<20}\t{row[3]:<15}\n"
 
-    print(f"\n--- {file_name.replace('.csv', '').replace('_', ' ').title()} - {difficulty.capitalize()} ---")
+                messagebox.showinfo("Leaderboards", leaderboard)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No leaderboard data found.")
 
-    questions = []
-    with open(file_name, 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['difficulty'].lower() == difficulty:
-                questions.append((row['question'], row['answer']))
-
-    game = MgaTanong(questions)
-    score = game.start_quiz()
-    random.shuffle(questions)
-
-    game_over.play()
-    save_results(pangalan, difficulty, file_name, score)
-    print(f"Your results have been saved. Thank you for playing, {pangalan}!")
-
+    def show_detail(self):
+        how_to_play_message = """
+        To start, click on the Start Quiz button and enter your name 
+        (only letters and numbers allowed). After that, you'll select a quiz category from options like Trivia, 
+        Science, Math, Literary, or History. Once you've picked a category, you'll choose your difficulty level: 
+        Easy, Normal, or Expert. The quiz will then begin, displaying questions based on your category and difficulty. 
+        Type your answer into the text box and click Submit. Correct answers will earn you points, and answering 
+        three consecutive questions correctly will grant you an extra life. Incorrect answers will cost you a life. 
+        If you're stuck, you can click the Hint button to reveal the first letter of the correct answer, but this 
+        will deduct one of your lives. You start with 3 lives, and if you run out, the game ends. Your score will 
+        increase for each correct answer, and you can check the Leaderboards at any time to see how you stack up 
+        against others. Good luck, and may the best player win!
+        """
+        messagebox.showinfo("How to Play", how_to_play_message)
 if __name__ == "__main__":
-    while True:
-        main()
-        choice = input("Want to play? (yes/no): ").strip().lower()
-        if choice == "no":
-            pygame.quit()
-            break
+    play_sounds()
+    root = tk.Tk()
+    game = QuizGame(root)
+    root.mainloop()

@@ -1,0 +1,21 @@
+difficulty,question,answer
+expert,What is the term for the longest side of a right triangle?,Hypotenuse
+expert,What is the term for a polygon with eight sides?,Octagon
+expert,What is the term for the ratio of the circumference of a circle to its diameter?,Pi
+expert,What is the term for a number that is not divisible by any other number except for 1 and itself?,Prime
+expert,What is the term for the average of a set of numbers?,Mean
+expert,What is the term for a three-dimensional shape with six rectangular faces?,Cuboid
+expert,What is the term for the value that appears most frequently in a data set?,Mode
+expert,What is the term for the distance around a circle?,Circumference
+expert,What is the term for a mathematical statement that two expressions are equal?,Equation
+difficulty,question,answer
+expert,What is the term for a set that contains no elements?,Empty
+expert,What is the term for a function that assigns exactly one output for each input?,Mapping
+expert,What is the term for a graph that has no cycles?,Acyclic
+expert,What is the term for a statement that can be either true or false?,Proposition
+expert,What is the term for a collection of distinct objects considered as a whole?,Set
+expert,What is the term for the set of all subsets of a given set?,Power
+expert,What is the term for the operation that combines two sets to include all elements from both?,Union
+expert,What is the term for the operation that results in a set containing elements that are in both sets?,Intersection
+expert,What is the term for a set that contains all elements of a universal set except those in a specified subset?,Complement
+expert,What is the term for a set that contains exactly one element from each equivalence class?,Representative
